@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#102b4c">
+<title>TrackED — Student Monitoring</title>
+<style>
+:root{
+  --navy:#102b4c;
+  --navy2:#18385f;
+  --ink:#142b4d;
+  --muted:#6d86a7;
+  --line:#d8e4f2;
+  --panel:#f7faff;
+  --green:#078747;
+  --green-soft:#e3f5eb;
+  --red:#c83232;
+  --red-soft:#fff0ef;
+  --blue:#176bc0;
+  --blue-soft:#e8f2ff;
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0}
+body{
+  overflow:hidden;
+  background:#f3f7fc;
+  color:var(--ink);
+  font-family:Arial,Helvetica,sans-serif;
+}
+.topbar{
+  height:98px;
+  width:100%;
+  background:linear-gradient(110deg,#102846,#193b65);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 3.1vw;
+  box-shadow:0 3px 14px rgba(9,30,55,.18);
+  position:relative;
+  z-index:5;
+}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.brand-mark{width:58px;height:68px;flex:0 0 auto}
+.brand-word{
+  font-size:clamp(28px,3.1vw,43px);
+  line-height:1;
+  font-weight:900;
+  letter-spacing:-1.5px;
+  white-space:nowrap;
+}
+.brand-word .track{color:#fff}
+.brand-word .ed{color:#24bd69}
+.brand-sub{
+  margin-top:5px;
+  color:#d7e6f7;
+  font-size:clamp(9px,.9vw,13px);
+  letter-spacing:2.4px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.header-right{display:flex;align-items:center;gap:26px;text-align:right}
+.datetime{font-size:clamp(13px,1.4vw,20px);font-weight:800;white-space:nowrap}
+.datetime .separator{opacity:.65;padding:0 10px}
+.gate-name{font-size:clamp(11px,1vw,15px);font-weight:700;margin-top:5px}
+.network{width:38px;height:32px;flex:0 0 auto}
+.network.online{color:#25c878}
+.network.offline{color:#f3b04a}
+main{
+  height:calc(100vh - 180px);
+  min-height:0;
+  display:grid;
+  grid-template-columns:minmax(0,41fr) minmax(0,59fr);
+  gap:32px;
+  padding:0 2.1vw 14px;
+}
+.photo-panel{
+  min-width:0;
+  min-height:0;
+  height:100%;
+  margin-top:0;
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(145deg,#dbe8f6,#c7d8ec);
+  border-radius:0 0 13px 13px;
+  box-shadow:0 5px 20px rgba(19,48,82,.12);
+}
+.photo-panel img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 28%;
+  background:#dce7f3;
+}
+.photo-placeholder{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:#52759e;
+  gap:20px;
+  text-align:center;
+  padding:30px;
+}
+.photo-placeholder svg{width:110px;height:110px;opacity:.55}
+.photo-placeholder strong{font-size:clamp(18px,2vw,28px);letter-spacing:2px}
+.photo-placeholder span{font-size:clamp(12px,1.1vw,16px);font-weight:700}
+.name-overlay{
+  position:absolute;
+  left:0;right:0;bottom:0;
+  padding:22px 22px 25px;
+  color:#fff;
+  text-align:center;
+  background:linear-gradient(180deg,rgba(10,31,57,0),rgba(10,31,57,.92) 24%);
+}
+.student-name{
+  font-size:clamp(22px,2.45vw,36px);
+  line-height:1.12;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.2px;
+  overflow-wrap:anywhere;
+}
+.student-program{
+  margin-top:9px;
+  color:#dce9f8;
+  font-size:clamp(14px,1.45vw,21px);
+  font-weight:700;
+  letter-spacing:.5px;
+}
+.right-panel{
+  min-width:0;
+  min-height:0;
+  height:100%;
+  padding:25px 0 0;
+  display:flex;
+  flex-direction:column;
+}
+.success-banner{
+  min-height:116px;
+  border-radius:13px;
+  background:var(--green-soft);
+  color:var(--green);
+  display:flex;
+  align-items:center;
+  gap:28px;
+  padding:17px 25px;
+  flex:0 0 auto;
+}
+.success-icon{
+  width:82px;height:82px;border-radius:50%;
+  background:linear-gradient(145deg,#0a9b57,#087a43);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;flex:0 0 auto;
+}
+.success-icon svg{width:49px;height:49px}
+.banner-title{font-size:clamp(22px,2.3vw,35px);font-weight:900;letter-spacing:1px}
+.banner-sub{font-size:clamp(14px,1.35vw,20px);color:#4d6d8f;margin-top:6px;font-weight:600}
+.detail-list{padding:18px 22px 8px;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly}
+.detail-row{
+  display:grid;
+  grid-template-columns:42px minmax(145px, .78fr) minmax(0,1.45fr);
+  align-items:center;
+  gap:15px;
+  min-height:57px;
+}
+.detail-icon{width:36px;height:36px;color:#3b5f89;display:flex;align-items:center;justify-content:center}
+.detail-icon svg{width:34px;height:34px;fill:currentColor}
+.detail-label{
+  color:#6b86aa;
+  font-size:clamp(13px,1.2vw,18px);
+  letter-spacing:1px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+.detail-value{
+  color:#142b4d;
+  font-size:clamp(17px,1.7vw,26px);
+  line-height:1.2;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+.movement-divider{height:1px;background:var(--line);margin:5px 0 8px}
+.movement-row .detail-value{display:flex;align-items:center;gap:12px}
+.movement-pill{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:76px;padding:7px 13px;border-radius:8px;
+  font-size:clamp(16px,1.5vw,22px);font-weight:900;letter-spacing:1px;
+}
+.movement-pill.in{background:#dff5e8;color:#087b43}
+.movement-pill.out{background:#ffe9e7;color:#b72e2e}
+.movement-description{font-size:clamp(15px,1.35vw,20px);font-weight:800}
+.info-banner{
+  min-height:94px;
+  background:var(--blue-soft);
+  border-radius:12px;
+  display:flex;align-items:center;gap:18px;
+  padding:15px 24px;
+  margin-top:8px;
+  flex:0 0 auto;
+}
+.info-icon{
+  width:48px;height:48px;border-radius:50%;
+  background:#2674c6;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:29px;font-weight:900;flex:0 0 auto;
+}
+.info-title{color:#176bc0;font-size:clamp(16px,1.45vw,21px);font-weight:900}
+.info-sub{color:#5684b8;font-size:clamp(12px,1.1vw,16px);margin-top:5px;font-weight:600}
+.footer{
+  height:82px;
+  position:fixed;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(110deg,#102846,#193b65);
+  color:#e8f0fa;
+  font-size:clamp(11px,1vw,15px);
+  letter-spacing:5px;font-weight:700;
+}
+.footer-dot{width:5px;height:5px;background:#d7e6f7;border-radius:50%}
+.idle-screen{
+  grid-column:1/-1;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:18px;
+  color:#254a73;text-align:center;
+}
+.idle-mark{
+  width:128px;height:128px;border-radius:50%;
+  border:3px solid #3d78b6;background:#e6f1fc;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 18px rgba(45,112,181,.07),0 0 0 36px rgba(45,112,181,.04);
+}
+.idle-mark svg{width:65px;height:65px}
+.idle-title{font-size:clamp(28px,3vw,42px);font-weight:900;letter-spacing:3px}
+.idle-sub{font-size:clamp(14px,1.4vw,20px);font-weight:700;color:#5a7593}
+.toast{
+  position:fixed;z-index:20;top:115px;right:28px;
+  max-width:min(540px,45vw);
+  padding:15px 20px;border-radius:12px;
+  color:#fff;background:#a72c2c;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+  font-size:15px;font-weight:700;
+  display:none;
+}
+.toast.show{display:block;animation:toastIn .18s ease-out}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.offline-label{display:none;color:#ffd18a;font-size:12px;font-weight:800;letter-spacing:1px;margin-top:4px}
+.auth-modal{
+  position:fixed;inset:0;z-index:50;
+  background:rgba(9,25,45,.64);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.auth-modal.hidden{display:none}
+.auth-card{
+  width:min(700px,95vw);background:#fff;border-radius:18px;
+  box-shadow:0 20px 70px rgba(0,0,0,.3);padding:28px;
+}
+.auth-title{font-size:24px;font-weight:900;color:#a72c2c}
+.auth-student{font-size:17px;color:#29496e;margin:10px 0 18px;font-weight:700}
+.auth-hint{font-size:14px;color:#627b98;margin-bottom:15px}
+.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.reason-grid button{
+  border:1px solid #e4b7b7;background:#fff7f6;color:#8f2727;
+  border-radius:10px;padding:14px 12px;font-size:15px;font-weight:800;cursor:pointer;
+}
+.reason-grid button:hover{background:#ffe9e7}
+.reason-grid button:disabled{opacity:.5;cursor:wait}
+@media(max-width:900px){
+  body{overflow:auto}
+  .topbar{height:80px;padding:0 14px}
+  .brand-mark{width:43px;height:52px}
+  .brand-word{font-size:26px}
+  .brand-sub{font-size:8px;letter-spacing:1.2px}
+  .header-right{gap:8px}
+  .network{width:28px}
+  main{height:auto;min-height:calc(100vh - 145px);grid-template-columns:1fr;gap:14px;padding:0 12px 95px}
+  .photo-panel{height:48vh;min-height:320px;border-radius:0 0 12px 12px}
+  .right-panel{padding:10px 0 0}
+  .success-banner{min-height:82px;padding:12px;gap:12px}
+  .success-icon{width:56px;height:56px}
+  .success-icon svg{width:34px;height:34px}
+  .detail-list{padding:10px 4px}
+  .detail-row{grid-template-columns:34px minmax(100px,.8fr) minmax(0,1.3fr);gap:8px;min-height:48px}
+  .detail-icon,.detail-icon svg{width:28px;height:28px}
+  .info-banner{min-height:75px;margin-bottom:10px}
+  .footer{height:60px;letter-spacing:3px}
+  .toast{top:90px;right:12px;max-width:80vw}
+}
+@media(max-width:540px){
+  .datetime{font-size:11px}
+  .datetime .separator{padding:0 3px}
+  .gate-name{font-size:9px}
+  .brand-word{font-size:22px}
+  .brand-sub{font-size:7px}
+  .detail-row{grid-template-columns:28px 105px minmax(0,1fr)}
+  .detail-label{font-size:11px}
+  .detail-value{font-size:15px}
+  .reason-grid{grid-template-columns:1fr}
+  .footer{font-size:9px;gap:9px;letter-spacing:2px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 70 82" aria-hidden="true">
+      <defs><linearGradient id="shield" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#43d0ff"/><stop offset="1" stop-color="#18a86a"/></linearGradient></defs>
+      <path d="M35 3 64 14v24c0 19-12 31-29 40C18 69 6 57 6 38V14L35 3Z" fill="none" stroke="url(#shield)" stroke-width="6"/>
+      <path d="M17 27 35 20 53 27 35 34 17 27Z" fill="#dff6ff"/>
+      <path d="M23 32v12c7 6 17 6 24 0V32l-12 5-12-5Z" fill="#dff6ff"/>
+      <path d="M53 28v14" stroke="#dff6ff" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="53" cy="45" r="3" fill="#28c875"/>
+    </svg>
+    <div>
+      <div class="brand-word"><span class="track">Track</span><span class="ed">ED</span></div>
+      <div class="brand-sub">STUDENT MONITORING SYSTEM</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div>
+      <div class="datetime"><span id="header-date">—</span><span class="separator">|</span><span id="header-time">—</span></div>
+      <div class="gate-name">Main Campus - Gate 1 <span id="offline-label" class="offline-label">• OFFLINE MODE</span></div>
+    </div>
+    <svg id="network-icon" class="network online" viewBox="0 0 40 32" fill="none" aria-label="Network status">
+      <path d="M3 10C12 2 28 2 37 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M9 17c6-5 16-5 22 0" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M15 24c3-2 7-2 10 0" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="20" cy="29" r="2.5" fill="currentColor"/>
+    </svg>
+  </div>
+</header>
+
+<main>
+  <section id="idle-screen" class="idle-screen">
+    <div class="idle-mark">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="10" y="14" width="44" height="36" rx="5"/>
+        <path d="M18 25h14M18 33h10M18 41h7M39 27h8M39 35h8"/>
+        <circle cx="43" cy="21" r="4"/>
+      </svg>
+    </div>
+    <div class="idle-title">READY TO SCAN</div>
+    <div class="idle-sub">Tap the student's RFID card on the reader</div>
+  </section>
+
+  <section id="result-layout" style="display:none;min-width:0;min-height:0;grid-column:1/-1;grid-template-columns:minmax(0,41fr) minmax(0,59fr);gap:32px">
+    <div class="photo-panel">
+      <img id="student-photo" alt="Student photo" style="display:none">
+      <div id="photo-placeholder" class="photo-placeholder">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3">
+          <circle cx="50" cy="34" r="18"/><path d="M15 88c3-22 17-33 35-33s32 11 35 33"/>
+        </svg>
+        <strong>STUDENT PHOTO</strong>
+        <span>Photo not available</span>
+      </div>
+      <div class="name-overlay">
+        <div id="student-name" class="student-name">—</div>
+        <div id="student-program" class="student-program">—</div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div id="success-banner" class="success-banner">
+        <div class="success-icon">
+          <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 27 11 11L44 13"/>
+          </svg>
+        </div>
+        <div>
+          <div id="banner-title" class="banner-title">SCAN SUCCESSFUL</div>
+          <div id="banner-sub" class="banner-sub">Student has been recorded.</div>
+        </div>
+      </div>
+
+      <div class="detail-list">
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h13A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5v-13ZM8 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm-3 9c.5-2 1.5-3 3-3s2.5 1 3 3H5Zm8-8h5v1.8h-5V9Zm0 4h5v1.8h-5V13Z"/></svg></div>
+          <div class="detail-label">Student ID</div><div id="student-id" class="detail-value">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="m12 2 11 5-11 5L1 7l11-5Zm-7 9 7 3.2 7-3.2v5.5c-4.4 3.5-9.6 3.5-14 0V11Zm16-1v7h-2v-7h2Z"/></svg></div>
+          <div class="detail-label">Grade Level</div><div id="grade-level" class="detail-value">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M3 4.5A2.5 2.5 0 0 1 5.5 2H20v17H5.5A2.5 2.5 0 0 0 3 21V4.5Zm2.5-.5a.5.5 0 0 0-.5.5V18a4 4 0 0 1 .5 0H18V4H5.5Z"/></svg></div>
+          <div class="detail-label">Strand / Course</div><div id="strand-course" class="detail-value">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M16 11a3 3 0 1 0-2.9-3.8A4.5 4.5 0 0 1 16 11ZM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 2c-3 0-6 1.5-6 4v2h12v-2c0-2.5-3-4-6-4Zm8 0c-.5 0-1 .1-1.5.2 1.5.9 2.5 2.2 2.5 3.8v2h5v-2c0-2.5-3-4-6-4Z"/></svg></div>
+          <div class="detail-label">Section</div><div id="section" class="detail-value">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M7 2h2v2h6V2h2v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3V2Zm13 8H4v10h16V10ZM6 12h3v3H6v-3Zm5 0h3v3h-3v-3Zm5 0h3v3h-3v-3Z"/></svg></div>
+          <div class="detail-label">School Year</div><div id="school-year" class="detail-value">—</div>
+        </div>
+        <div class="movement-divider"></div>
+        <div class="detail-row movement-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M13 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7v-2h7V5h-7V3ZM4 11h10v2H4l3.5 3.5L6 18l-6-6 6-6 1.5 1.5L4 11Z"/></svg></div>
+          <div class="detail-label">Movement</div>
+          <div class="detail-value"><span id="movement-pill" class="movement-pill in">IN</span><span id="movement-description" class="movement-description">Entrance</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg></div>
+          <div class="detail-label">Location</div><div id="location" class="detail-value">Main Campus - Gate 1</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 2h2v5.4l3.6 2.1-1 1.7-4.6-2.8V6Z"/></svg></div>
+          <div class="detail-label">Time</div><div id="scan-time" class="detail-value">—</div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <div class="info-icon">i</div>
+        <div>
+          <div class="info-title">Next Scan Will Update the Display</div>
+          <div class="info-sub">Keep the RFID card near the reader.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="auth-modal" class="auth-modal hidden">
+  <div class="auth-card">
+    <div class="auth-title">HIGH SCHOOL EARLY EXIT AUTHORIZATION</div>
+    <div id="auth-student" class="auth-student">—</div>
+    <div class="auth-hint">Select the authorized reason to record this OUT movement.</div>
+    <div class="reason-grid">
+      <button type="button" data-reason="Parent / Guardian Request">Parent / Guardian Request</button>
+      <button type="button" data-reason="Medical / Health Concern">Medical / Health Concern</button>
+      <button type="button" data-reason="School Activity / Official Business">School Activity / Official Business</button>
+      <button type="button" data-reason="Emergency">Emergency</button>
+      <button type="button" data-reason="Other Authorized Reason">Other Authorized Reason</button>
+    </div>
+    <button id="cancel-authorization" type="button" style="margin-top:14px;border:0;background:transparent;color:#5e7180;font-weight:800;cursor:pointer;padding:8px 4px">Cancel and return to scanner</button>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>SAFE</span><span class="footer-dot"></span><span>SECURE</span><span class="footer-dot"></span><span>TRACKED</span>
+</footer>
+
+<input id="rfid-capture" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-hidden="true" style="position:fixed;left:-1000px;top:-1000px;opacity:0">
+
+<script>
+'use strict';
+const API = window.location.origin + '/tracked/api/scan.php';
+const SCANNER_KEY = 'tracked_secret_key';
+const GATE_LOCATION = 'Main Campus - Gate 1';
+const ERROR_SECONDS = 2400;
+
+const input = document.getElementById('rfid-capture');
+const toast = document.getElementById('toast');
+let buffer = '';
+let bufferTimer = null;
+let busy = false;
+let toastTimer = null;
+let pendingAuthorization = null;
+let lastSuccessfulStudent = null;
+
+function el(id){ return document.getElementById(id); }
+
+function updateClock(){
+  const now = new Date();
+  el('header-date').textContent = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  el('header-time').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+}
+updateClock();
+setInterval(updateClock,1000);
+
+function focusReader(){ try{ input.focus({preventScroll:true}); }catch(_){ input.focus(); } }
+document.addEventListener('click',focusReader);
+window.addEventListener('load',focusReader);
+window.addEventListener('focus',focusReader);
+
+function showToast(message, type='error'){
+  clearTimeout(toastTimer);
+  toast.textContent = message || 'Unable to process this RFID scan.';
+  toast.style.background = type === 'info' ? '#245f98' : '#a72c2c';
+  toast.classList.add('show');
+  toastTimer = setTimeout(()=>toast.classList.remove('show'),ERROR_SECONDS);
+}
+function clearToast(){ clearTimeout(toastTimer); toast.classList.remove('show'); }
+
+function setNetwork(offline){
+  el('network-icon').classList.toggle('offline',!!offline);
+  el('network-icon').classList.toggle('online',!offline);
+  el('offline-label').style.display = offline ? 'inline' : 'none';
+}
+
+function currentSchoolYear(){
+  const d = new Date();
+  const start = d.getMonth() >= 5 ? d.getFullYear() : d.getFullYear()-1;
+  return start + ' - ' + (start+1);
+}
+
+function formatScanTime(value){
+  if(!value) return new Date();
+  const parsed = new Date(String(value).replace(' ','T'));
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function fallbackPhoto(){
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#dce7f3"/><circle cx="300" cy="270" r="125" fill="#9fb7d0"/><path d="M80 800c18-190 105-290 220-290s202 100 220 290" fill="#9fb7d0"/></svg>'
+  );
+}
+
+function showResult(data){
+  const s = data.student || {};
+  const movement = String(data.movement_type || data.scan_type || 'IN').toUpperCase();
+  const context = data.movement_context || 'NORMAL';
+  const name = s.full_name || 'STUDENT';
+  const yearLevel = s.year_level || s.education_level || '—';
+  const strandCourse = s.strand || s.track || s.course || '—';
+  const program = [yearLevel, strandCourse].filter(v=>v && v!=='—').join(' - ');
+
+  el('idle-screen').style.display = 'none';
+  el('result-layout').style.display = 'grid';
+
+  el('student-name').textContent = name;
+  el('student-program').textContent = program || 'STUDENT';
+  el('student-id').textContent = s.student_id_no || '—';
+  el('grade-level').textContent = yearLevel;
+  el('strand-course').textContent = strandCourse;
+  el('section').textContent = s.section || '—';
+  el('school-year').textContent = currentSchoolYear();
+  el('location').textContent = GATE_LOCATION;
+
+  const pill = el('movement-pill');
+  pill.textContent = movement;
+  pill.classList.toggle('in',movement==='IN');
+  pill.classList.toggle('out',movement==='OUT');
+  let movementDescription = movement === 'IN' ? 'Entrance' : 'Exit';
+  if(context === 'AUTHORIZED_REENTRY') movementDescription = 'Authorized Re-entry';
+  if(context === 'EARLY_EXIT') movementDescription = 'Authorized Early Exit';
+  el('movement-description').textContent = '(' + movementDescription + ')';
+
+  const stamp = formatScanTime(data.verified_at || data.scan_time);
+  el('scan-time').textContent = stamp.toLocaleString('en-US',{
+    month:'short',day:'numeric',year:'numeric',
+    hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
+  });
+
+  const photo = el('student-photo');
+  const placeholder = el('photo-placeholder');
+  photo.onload = ()=>{photo.style.display='block';placeholder.style.display='none';};
+  photo.onerror = ()=>{photo.style.display='none';placeholder.style.display='flex';};
+  photo.src = s.photo_path ? (s.photo_path + (s.photo_path.includes('?')?'&':'?') + 'v=' + Date.now()) : fallbackPhoto();
+  if(!s.photo_path) photo.src = fallbackPhoto();
+
+  el('banner-title').textContent = 'SCAN SUCCESSFUL';
+  el('banner-sub').textContent = 'Student has been recorded.';
+  el('success-banner').style.background = '#e3f5eb';
+  el('success-banner').style.color = '#078747';
+  lastSuccessfulStudent = data;
+  setNetwork(!!data.offline);
+  clearToast();
+}
+
+function restoreDisplay(){
+  if(lastSuccessfulStudent) el('result-layout').style.display = 'grid';
+  else el('idle-screen').style.display = 'flex';
+}
+
+function errorMessage(data){
+  const messages = {
+    unknown:'RFID card is not registered. Please proceed to the SPMO Office.',
+    cooldown:'This card was just processed. Please wait a few seconds before tapping again.',
+    access_locked:'This student’s scan access is locked. Please proceed to the SPMO Office.',
+    reentry_blocked:'Campus policy does not allow this student to re-enter yet.',
+    no_schedule:'No applicable schedule was found.',
+    outside_window:'This scan is outside the active event window.',
+    migration_required:'The local movement database needs its required migration.',
+    verification_disabled:'This kiosk is set to direct scan mode. Please refresh the kiosk screen.'
+  };
+  return data.message || messages[data.status] || messages[data.status] || 'The RFID scan could not be recorded.';
+}
+
+async function postScan(uid, authorizationReason=''){
+  const body = {rfid_uid:uid,scanner_key:SCANNER_KEY};
+  if(authorizationReason) body.authorization_reason = authorizationReason;
+  const response = await fetch(API,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    cache:'no-store',
+    body:JSON.stringify(body)
+  });
+  let data;
+  try{ data = await response.json(); }
+  catch(_){ throw new Error('Scanner API returned an invalid response.'); }
+  return data;
+}
+
+function openAuthorization(data,uid){
+  pendingAuthorization = {uid,student:data.student,scanType:data.movement_type || data.scan_type || 'OUT'};
+  el('auth-student').textContent = (data.student && data.student.full_name ? data.student.full_name : 'Student') + ' — OUT movement';
+  el('auth-modal').classList.remove('hidden');
+  document.querySelectorAll('.reason-grid button').forEach(b=>b.disabled=false);
+}
+
+async function doScan(uid){
+  if(busy || !uid) return;
+  busy = true;
+  clearToast();
+  try{
+    const data = await postScan(uid);
+    setNetwork(!!data.offline);
+
+    if(data.status === 'authorization_required' || data.requires_authorization){
+      openAuthorization(data,uid);
+      return;
+    }
+    if(data.status === 'accepted' || data.status === 'ok'){
+      showResult(data);
+      return;
+    }
+    if(data.status === 'duplicate'){
+      showToast(data.message || 'This RFID card has already been processed.','info');
+      return;
+    }
+    showToast(errorMessage(data));
+  }catch(err){
+    showToast(err.message || 'Cannot connect to the local scanner service.');
+  }finally{
+    if(!pendingAuthorization){
+      setTimeout(()=>{busy=false;buffer='';input.value='';focusReader();},300);
+    }
+  }
+}
+
+async function submitEarlyExitReason(reason,button){
+  if(!pendingAuthorization || !reason || !button) return;
+  document.querySelectorAll('.reason-grid button').forEach(b=>b.disabled=true);
+  try{
+    const data = await postScan(pendingAuthorization.uid,reason);
+    if(data.status === 'accepted' || data.status === 'ok'){
+      el('auth-modal').classList.add('hidden');
+      pendingAuthorization = null;
+      showResult(data);
+    }else{
+      showToast(errorMessage(data));
+      document.querySelectorAll('.reason-grid button').forEach(b=>b.disabled=false);
+    }
+  }catch(err){
+    showToast(err.message || 'Cannot save the authorized early exit.');
+    document.querySelectorAll('.reason-grid button').forEach(b=>b.disabled=false);
+  }finally{
+    if(!pendingAuthorization){
+      setTimeout(()=>{busy=false;buffer='';input.value='';focusReader();},300);
+    }
+  }
+}
+
+document.querySelectorAll('.reason-grid button').forEach(button=>{
+  button.addEventListener('click',()=>submitEarlyExitReason(button.dataset.reason,button));
+});
+el('cancel-authorization').addEventListener('click',()=>{
+  el('auth-modal').classList.add('hidden');
+  pendingAuthorization = null;
+  busy = false;
+  buffer = '';
+  input.value = '';
+  focusReader();
+});
+
+input.addEventListener('keydown',event=>{
+  if(busy){event.preventDefault();return;}
+  if(event.key === 'Enter'){
+    event.preventDefault();
+    const uid = buffer.trim();
+    buffer = '';
+    clearTimeout(bufferTimer);
+    if(uid.length >= 4) doScan(uid);
+    return;
+  }
+  if(event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey){
+    buffer += event.key;
+    clearTimeout(bufferTimer);
+    bufferTimer = setTimeout(()=>{
+      const uid = buffer.trim();
+      buffer = '';
+      if(uid.length >= 4) doScan(uid);
+    },180);
+  }
+});
+
+focusReader();
+</script>
+</body>
+</html>

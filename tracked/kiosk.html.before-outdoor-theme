@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackED — Attendance Kiosk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #020c1b;
+  --surface: #061525;
+  --cyan:    #00d4ff;
+  --blue:    #0057ff;
+  --green:   #00ff88;
+  --orange:  #ff9f00;
+  --red:     #ff3860;
+  --purple:  #9d6cff;
+  --text:    #cfe8ff;
+  --muted:   #3a5a7a;
+  --glow-c:  rgba(0,212,255,0.30);
+  --glow-b:  rgba(0,87,255,0.20);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  height: 100vh; width: 100vw;
+  overflow: hidden;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ── BACKGROUND GRID ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.035) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridDrift 25s linear infinite;
+  pointer-events: none; z-index: 0;
+}
+@keyframes gridDrift {
+  from { background-position: 0 0; }
+  to   { background-position: 50px 50px; }
+}
+
+/* ── TOP GLOW BLOB ── */
+body::after {
+  content: '';
+  position: fixed; top: -300px; left: 50%;
+  transform: translateX(-50%);
+  width: 900px; height: 500px;
+  background: radial-gradient(ellipse, rgba(0,87,255,0.18) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── FRAME CORNERS ── */
+.corner {
+  position: fixed;
+  width: 60px; height: 60px;
+  border-color: rgba(0,212,255,0.35);
+  border-style: solid; z-index: 1;
+}
+.corner-tl { top:16px; left:16px;  border-width:2px 0 0 2px; }
+.corner-tr { top:16px; right:16px; border-width:2px 2px 0 0; }
+.corner-bl { bottom:16px; left:16px;  border-width:0 0 2px 2px; }
+.corner-br { bottom:16px; right:16px; border-width:0 2px 2px 0; }
+
+/* ── HEADER ── */
+.header {
+  position: fixed; top:0; left:0; right:0; z-index:10;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 14px 36px;
+  background: linear-gradient(180deg, rgba(2,12,27,0.97) 60%, transparent 100%);
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+}
+
+.logo-row { display:flex; align-items:center; gap:12px; }
+
+.logo-badge {
+  width:40px; height:40px;
+  border:1.5px solid var(--cyan);
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Orbitron',monospace;
+  font-size:0.65rem; font-weight:900;
+  color:var(--cyan); letter-spacing:1px;
+  box-shadow:0 0 14px var(--glow-c);
+}
+
+.school-label {
+  font-size:0.9rem; font-weight:400;
+  color:rgba(207,232,255,0.75); letter-spacing:0.5px;
+}
+
+.clock-col { text-align:right; }
+
+.clock {
+  font-family:'Orbitron',monospace;
+  font-size:2.2rem; font-weight:700;
+  color:var(--cyan); letter-spacing:4px; line-height:1;
+  text-shadow:0 0 24px var(--glow-c);
+}
+
+.date-str {
+  font-size:0.68rem; color:var(--muted);
+  letter-spacing:2px; text-transform:uppercase;
+  margin-top:3px;
+}
+
+/* ── OFFLINE BADGE ── */
+.offline-badge {
+  position:fixed; top:14px; left:50%; transform:translateX(-50%);
+  background:rgba(255,56,96,0.12); border:1px solid var(--red);
+  color:var(--red); font-size:0.65rem; padding:3px 14px;
+  border-radius:20px; letter-spacing:2px; text-transform:uppercase;
+  display:none; z-index:20;
+  animation:blink 2s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+
+/* ── MAIN ── */
+.main {
+  position:relative; z-index:5;
+  width:100vw;
+  min-height:calc(100vh - 70px);
+  margin-top:70px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+}
+
+/* ── IDLE ── */
+
+#idle-box {
+  display:flex; flex-direction:column;
+  align-items:center; gap:20px;
+}
+
+.pulse-wrap {
+  position:relative; width:190px; height:190px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.pulse-ring {
+  position:absolute; border-radius:50%;
+  border:1.5px solid var(--cyan);
+}
+.pulse-ring:nth-child(1) { inset:0;    opacity:0; animation:pulseOut 2.4s ease-out infinite 0s; }
+.pulse-ring:nth-child(2) { inset:18px; opacity:0; animation:pulseOut 2.4s ease-out infinite 0.6s; }
+.pulse-ring:nth-child(3) { inset:36px; opacity:0; animation:pulseOut 2.4s ease-out infinite 1.2s; }
+
+@keyframes pulseOut {
+  0%   { transform:scale(0.7); opacity:0.7; }
+  100% { transform:scale(1.3); opacity:0; }
+}
+
+.scan-core {
+  position:relative; z-index:2;
+  width:108px; height:108px; border-radius:50%;
+  background:radial-gradient(circle, rgba(0,87,255,0.25) 0%, rgba(0,212,255,0.08) 60%, transparent 100%);
+  border:2px solid var(--cyan);
+  display:flex; align-items:center; justify-content:center;
+  font-size:3.2rem;
+  box-shadow:0 0 40px var(--glow-c), inset 0 0 24px rgba(0,212,255,0.08);
+  animation:floatBob 3.5s ease-in-out infinite;
+}
+@keyframes floatBob {
+  0%,100% { transform:translateY(0) scale(1); }
+  50%     { transform:translateY(-7px) scale(1.02); }
+}
+
+.scan-heading {
+  font-family:'Orbitron',monospace;
+  font-size:1.6rem; font-weight:700;
+  color:var(--cyan); letter-spacing:5px; text-transform:uppercase;
+  text-shadow:0 0 22px var(--glow-c);
+}
+
+.scan-hint {
+  font-size:0.82rem; color:var(--muted);
+  letter-spacing:2px; text-transform:uppercase;
+}
+
+.scan-bar {
+  width:260px; height:2px;
+  background:rgba(0,212,255,0.08); border-radius:2px;
+  overflow:hidden; margin-top:4px;
+}
+.scan-bar-fill {
+  width:45%; height:100%;
+  background:linear-gradient(90deg, transparent, var(--cyan), transparent);
+  animation:barSlide 1.8s ease-in-out infinite;
+}
+@keyframes barSlide { 0%{transform:translateX(-150%)} 100%{transform:translateX(350%)} }
+
+/* ── STUDENT CARD ── */
+#student-card {
+  display:none;
+  width:500px;
+  background:linear-gradient(145deg, rgba(6,21,37,0.97) 0%, rgba(0,20,50,0.97) 100%);
+  border-radius:24px;
+  padding:36px 44px 32px;
+  text-align:center;
+  border:1px solid rgba(0,212,255,0.25);
+  box-shadow:
+    0 0 0 1px rgba(0,212,255,0.06),
+    0 8px 60px rgba(0,212,255,0.12),
+    0 24px 80px rgba(0,87,255,0.10);
+  animation:cardPop 0.38s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative; overflow:hidden;
+}
+#student-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1.5px;
+  background:linear-gradient(90deg, transparent 5%, var(--cyan) 50%, transparent 95%);
+}
+@keyframes cardPop {
+  from { transform:scale(0.82) translateY(18px); opacity:0; }
+  to   { transform:scale(1)    translateY(0);    opacity:1; }
+}
+
+.photo-wrap {
+  position:relative; width:110px; height:110px;
+  margin:0 auto 18px;
+}
+.student-photo {
+  width:110px; height:110px; border-radius:50%;
+  object-fit:cover;
+  border:2.5px solid var(--cyan);
+  box-shadow:0 0 28px var(--glow-c);
+  display:block;
+}
+.orbit-ring {
+  position:absolute; inset:-9px; border-radius:50%;
+  border:1px dashed rgba(0,212,255,0.25);
+  animation:spin 10s linear infinite;
+}
+.orbit-dot {
+  position:absolute; top:-3px; left:50%;
+  width:6px; height:6px; background:var(--cyan);
+  border-radius:50%; transform:translateX(-50%);
+  box-shadow:0 0 8px var(--cyan);
+}
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+.student-name {
+  font-family:'Orbitron',monospace;
+  font-size:1.35rem; font-weight:700;
+  color:#fff; letter-spacing:1px;
+  margin-bottom:10px;
+  text-shadow:0 0 16px rgba(255,255,255,0.2);
+}
+
+.chips {
+  display:flex; justify-content:center;
+  gap:8px; flex-wrap:wrap; margin-bottom:6px;
+}
+.chip {
+  background:rgba(0,212,255,0.07);
+  border:1px solid rgba(0,212,255,0.18);
+  color:#7ab8e8; font-size:0.72rem;
+  padding:3px 12px; border-radius:20px;
+  letter-spacing:0.5px;
+}
+
+.student-idno {
+  font-size:0.72rem; color:var(--muted);
+  letter-spacing:2px; text-transform:uppercase;
+  margin-bottom:18px;
+}
+
+.status-badge {
+  display:inline-flex; align-items:center; gap:7px;
+  padding:9px 28px; border-radius:50px;
+  font-family:'Orbitron',monospace;
+  font-size:0.95rem; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase;
+}
+.s-ontime    { background:rgba(0,255,136,0.09); border:1.5px solid var(--green);  color:var(--green);  box-shadow:0 0 18px rgba(0,255,136,0.25); }
+.s-late      { background:rgba(255,159,0,0.09); border:1.5px solid var(--orange); color:var(--orange); box-shadow:0 0 18px rgba(255,159,0,0.25); }
+.s-duplicate { background:rgba(0,87,255,0.09);  border:1.5px solid #5090ff;       color:#90b8ff;       box-shadow:0 0 18px rgba(0,87,255,0.20); }
+.s-out       { background:rgba(157,108,255,0.09);border:1.5px solid var(--purple); color:var(--purple); box-shadow:0 0 18px rgba(157,108,255,0.25); }
+.s-error     { background:rgba(255,56,96,0.09); border:1.5px solid var(--red);    color:var(--red);    box-shadow:0 0 18px rgba(255,56,96,0.20); }
+
+.scan-ts {
+  font-size:0.68rem; color:var(--muted);
+  letter-spacing:2px; margin-top:12px;
+}
+.sms-note {
+  font-size:0.68rem; color:var(--green);
+  margin-top:7px; letter-spacing:1px;
+  opacity:0.8; display:none;
+}
+
+/* ── ERROR ── */
+#error-card {
+  display:none;
+  text-align:center;
+  animation:cardPop 0.38s cubic-bezier(0.34,1.56,0.64,1);
+}
+.err-ring {
+  width:110px; height:110px; border-radius:50%;
+  background:rgba(255,56,96,0.07);
+  border:2px solid var(--red);
+  display:flex; align-items:center; justify-content:center;
+  font-size:3.2rem;
+  margin:0 auto 20px;
+  box-shadow:0 0 36px rgba(255,56,96,0.25);
+  animation:shakeIt 0.45s ease;
+}
+@keyframes shakeIt {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.err-title {
+  font-family:'Orbitron',monospace;
+  font-size:1.3rem; font-weight:700;
+  color:var(--red); letter-spacing:3px;
+  text-transform:uppercase; margin-bottom:8px;
+}
+.err-sub { font-size:0.85rem; color:var(--muted); letter-spacing:1px; }
+
+/* ── FOOTER ── */
+.footer {
+  position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:8px; z-index:5;
+  font-family:'Orbitron',monospace;
+  font-size:0.6rem; color:rgba(58,90,122,0.5);
+  letter-spacing:3px; text-transform:uppercase;
+  white-space:nowrap;
+}
+.fdot {
+  width:3px; height:3px; border-radius:50%;
+  background:rgba(0,212,255,0.3);
+  animation:blink 2.4s ease infinite;
+}
+
+/* ── HIDDEN INPUT ── */
+#rfid-capture {
+  position:fixed; opacity:0;
+  width:1px; height:1px; top:0; left:0;
+  pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="offline-badge" id="offline-badge">⚠ OFFLINE MODE</div>
+
+<header class="header">
+  <div class="logo-row">
+    <div class="logo-badge">TRK</div>
+    <span class="school-label" id="school-name">TrackED Attendance System</span>
+  </div>
+  <div class="clock-col">
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="date-str" id="date-str">—</div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- IDLE -->
+  <div id="idle-box">
+    <div class="pulse-wrap">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="scan-core"><img src="logo.jpg" style="width:70px;height:70px;object-fit:contain;border-radius:50%;"></div>
+    </div>
+    <div class="scan-heading">Scan RFID</div>
+    <div class="scan-hint">I-tap ang iyong ID card sa scanner</div>
+    <div class="scan-bar"><div class="scan-bar-fill"></div></div>
+  </div>
+
+  <!-- STUDENT CARD -->
+  <div id="student-card">
+    <div class="photo-wrap">
+      <img id="student-photo" class="student-photo" src="" alt="">
+      <div class="orbit-ring"><div class="orbit-dot"></div></div>
+    </div>
+    <div class="student-name" id="student-name">—</div>
+    <div class="chips">
+      <span class="chip" id="s-course">—</span>
+      <span class="chip" id="s-section">—</span>
+    </div>
+    <div class="student-idno" id="s-idno">—</div>
+    <div class="status-badge" id="status-badge">—</div>
+    <div class="scan-ts" id="scan-ts"></div>
+    <div class="sms-note" id="sms-note">📱 SMS notification sent to parent</div>
+  </div>
+
+  <!-- ERROR CARD -->
+  <div id="error-card">
+    <div class="err-ring" id="err-icon">❓</div>
+    <div class="err-title" id="err-title">Unknown Card</div>
+    <div class="err-sub"   id="err-sub">Hindi registered ang RFID card na ito.</div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="fdot"></div>
+  <span>TrackED</span>
+  <div class="fdot"></div>
+  <span>RFID Attendance System</span>
+  <div class="fdot"></div>
+</footer>
+
+<input type="text" id="rfid-capture" autocomplete="off">
+
+<script>
+  const BASE     = window.location.origin;
+  const API      = BASE + '/tracked/api/scan.php';
+  const KEY      = 'tracked_secret_key';
+  const SHOW_SEC = 5;
+
+  // ── CLOCK ──
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock').textContent =
+      n.toLocaleTimeString('en-US', {hour12:false});
+    document.getElementById('date-str').textContent =
+      n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).toUpperCase();
+  }
+  setInterval(tick, 1000); tick();
+
+  // ── LOAD SCHOOL NAME ──
+  fetch(BASE + '/tracked/api/config.php')
+    .then(r=>r.json())
+    .then(d=>{ if(d.school_name) document.getElementById('school-name').textContent = d.school_name; })
+    .catch(()=>{});
+
+  // ── RFID CAPTURE ──
+  const inp = document.getElementById('rfid-capture');
+  let buf='', tmr, busy=false;
+
+  document.addEventListener('click', ()=>inp.focus());
+  document.addEventListener('keydown', e=>{ if(document.activeElement!==inp) inp.focus(); });
+  inp.focus();
+
+  inp.addEventListener('keydown', function(e) {
+    if (busy) { e.preventDefault(); return; }
+    if (e.key === 'Enter') {
+      const uid = buf.trim(); buf=''; clearTimeout(tmr);
+      if (uid.length >= 4) doScan(uid);
+    } else if (e.key.length === 1) {
+      buf += e.key;
+      clearTimeout(tmr);
+      tmr = setTimeout(()=>{
+        if (buf.length >= 4) doScan(buf.trim());
+        buf = '';
+      }, 300);
+    }
+  });
+
+  // ── SCAN ──
+  function doScan(uid) {
+    busy = true;
+    hide('idle-box'); hide('student-card'); hide('error-card');
+
+    fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rfid_uid:uid, scanner_key:KEY})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+      document.getElementById('offline-badge').style.display = data.offline ? 'block' : 'none';
+      const s = data.status;
+      if (s==='ok' || s==='duplicate') showStudent(data);
+      else if (s==='outside_window')   showError('Outside Schedule','⏰','Wala pang klase o tapos na ang oras ng scan.');
+      else if (s==='unknown')          showError('Unknown Card','❓','Hindi registered ang RFID card na ito.');
+      else if (s==='no_timein')        showError('No Time-In','⚠️','Mag time-in muna bago mag time-out.');
+      else                             showError('Error','❌', data.message || 'May nangyaring error.');
+    })
+    .catch(()=> showError('Connection Error','📡','Hindi maabot ang server.'))
+    .finally(()=>{
+      setTimeout(()=>{
+        hide('student-card'); hide('error-card');
+        show('idle-box');
+        document.getElementById('student-photo').src='';
+        inp.value=''; busy=false; inp.focus();
+      }, SHOW_SEC*1000);
+    });
+  }
+
+  function showStudent(data) {
+    const s    = data.student;
+    const isOut = data.scan_type === 'OUT';
+    const st   = data.attendance_status || (isOut ? 'Time Out' : '');
+    const now  = new Date();
+
+    document.getElementById('student-name').textContent = s.full_name;
+    document.getElementById('s-course').textContent     = (s.course||'') + ' ' + (s.year_level||'');
+    document.getElementById('s-section').textContent    = 'Sec. ' + (s.section||'N/A');
+    document.getElementById('s-idno').textContent       = 'Student No. ' + (s.student_id_no||'N/A');
+    document.getElementById('scan-ts').textContent      =
+      (isOut ? 'TIME OUT' : 'TIME IN') + ' — ' +
+      now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+
+const photo = document.getElementById('student-photo');
+photo.src = '';
+if (s.photo_path) {
+    const img = new Image();
+    img.onload = () => { photo.src = img.src; };
+    img.onerror = () => {
+        photo.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='38' r='26' fill='%2300d4ff' opacity='0.3'/%3E%3Cellipse cx='50' cy='92' rx='36' ry='22' fill='%2300d4ff' opacity='0.3'/%3E%3C/svg%3E";
+    };
+	img.src = s.photo_path;    
+}
+
+    const badge = document.getElementById('status-badge');
+    if (data.status==='duplicate') {
+      badge.textContent='✓ Already Logged'; badge.className='status-badge s-duplicate';
+    } else if (isOut) {
+      badge.textContent='◀ TIME OUT'; badge.className='status-badge s-out';
+    } else if (st==='On Time') {
+      badge.textContent='✓ ON TIME'; badge.className='status-badge s-ontime';
+    } else {
+      badge.textContent='! LATE'; badge.className='status-badge s-late';
+    }
+
+    const sn = document.getElementById('sms-note');
+    sn.style.display = data.sms_queued ? 'block' : 'none';
+    show('student-card');
+  }
+
+  function showError(title, icon, sub) {
+    document.getElementById('err-icon').textContent  = icon;
+    document.getElementById('err-title').textContent = title;
+    document.getElementById('err-sub').textContent   = sub;
+    show('error-card');
+  }
+
+  function show(id) {
+    var el = document.getElementById(id);
+    el.style.display = (id === 'idle-box') ? 'flex' : 'block';
+  }
+  function hide(id) { document.getElementById(id).style.display='none'; }
+</script>
+</body>
+</html>
